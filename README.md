@@ -7,7 +7,7 @@ A Discord bot interface for Stable Diffusion
 ## Setup requirements
 
 - Set up [AUTOMATIC1111's Stable Diffusion AI Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui).
-  - AIYA is currently tested on commit `c1928cdd6194928af0f53f70c51d59479b7025e2` of the Web UI.
+  - AIYA is currently tested on commit `f2eae6127d16a80d1516d3f6245b648eeca26330` of the Web UI.
 - Run the Web UI as local host with api (`COMMANDLINE_ARGS= --listen --api`).
 - Clone this repo.
 - Create a text file in your cloned repo called ".env", formatted like so:
@@ -32,25 +32,19 @@ To generate an image from text, use the /draw command and include your prompt as
 - CFG scale
 - sampling method
 - seed
-- img2img
-- denoising strength
-- batch count
 - Web UI styles
 - face restoration
 - high-res fix
 - CLIP skip
 - hypernetworks
+- img2img
+- denoising strength
+- batch count
 
 #### Bonus features
 
-- /settings command - set per-server defaults for the following (_see Notes!_):
-  - negative prompts
-  - model/checkpoint
-  - sampling steps / max steps
-  - sampling method
-  - batch count / max batch count
-  - CLIP skip
-  - hypernetworks
+- /settings command - set per-channel defaults for supported options (_see Notes!_):
+  - also can set maximum steps limit and max batch count limit
   - refresh (update AIYA's options with any changes from Web UI)
 - /identify command - create a caption for your image.
 - /stats command - shows how many /draw commands have been used.
@@ -65,7 +59,7 @@ To generate an image from text, use the /draw command and include your prompt as
 ## Notes
 
 - Ensure AIYA has `bot` and `application.commands` scopes when inviting to your Discord server, and intents are enabled.
-- As /settings can be abused, consider reviewing who can access the command. This can be done through Apps -> Integrations in your Server Settings.
+- As /settings can be abused, consider reviewing who can access the command. This can be done through Apps -> Integrations in your Server Settings. Read more about /settings [here.](https://github.com/Kilvoctu/aiyabot/wiki/settings-command)
 - [See wiki for optional .env variables you can set.](https://github.com/Kilvoctu/aiyabot/wiki/.env-Settings)
 - [See wiki for notes on swapping models.](https://github.com/Kilvoctu/aiyabot/wiki/Model-swapping)
 - AIYA uses Web UI's legacy high-res fix method. To ensure this works correctly, in your Web UI settings, enable this option: `For hires fix, use width/height sliders to set final resolution rather than first pass`

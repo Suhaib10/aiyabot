@@ -52,6 +52,21 @@ class TipsView(View):
         await interaction.response.edit_message(embed=embed_tips)
 
     @discord.ui.button(
+        custom_id="button_model",
+        label="Models list")
+    async def button_model(self, button, interaction):
+
+        model_list = ''
+        for model in settings.global_var.model_info.items():
+            # strip any folders from model full name
+            filename = model[1][0].split('/', 1)[-1].split('\\', 1)[-1]
+            model_list += f'\n{model[0]} - ``{filename}``'
+        embed_model = discord.Embed(title="Models list", description=model_list)
+        embed_model.colour = settings.global_var.embed_color
+
+        await interaction.response.edit_message(embed=embed_model)
+
+    @discord.ui.button(
         custom_id="button_styles",
         label="Styles list")
     async def button_style(self, button, interaction):
@@ -67,19 +82,19 @@ class TipsView(View):
         await interaction.response.edit_message(embed=embed_styles)
 
     @discord.ui.button(
-        custom_id="button_model",
-        label="Models list")
-    async def button_model(self, button, interaction):
+        custom_id="button_hyper",
+        label="Hypernets list")
+    async def button_hyper(self, button, interaction):
 
-        model_list = ''
-        for model in settings.global_var.model_info.items():
-            # strip any folders from model full name
-            filename = model[1][0].split('/', 1)[-1].split('\\', 1)[-1]
-            model_list += f'\n{model[0]} - ``{filename}``'
-        embed_model = discord.Embed(title="Models list", description=model_list)
-        embed_model.colour = settings.global_var.embed_color
+        hyper_list = ''
+        for value in settings.global_var.hyper_names:
+            if value == '':
+                value = ' '
+            hyper_list += f'\n``{value}``'
+        embed_hyper = discord.Embed(title="Hypernets list", description=hyper_list)
+        embed_hyper.colour = settings.global_var.embed_color
 
-        await interaction.response.edit_message(embed=embed_model)
+        await interaction.response.edit_message(embed=embed_hyper)
 
     @discord.ui.button(
         custom_id="button_embed",
@@ -110,9 +125,12 @@ class TipsView(View):
 
         url = 'https://github.com/Kilvoctu/aiyabot'
         url2 = 'https://raw.githubusercontent.com/Kilvoctu/kilvoctu.github.io/master/pics/previewthumb.png'
+        url3 = 'https://github.com/Kilvoctu/aiyabot/wiki#using-aiya'
         embed_about = discord.Embed(title="About me",
-                                    description=f"Hi! I'm an open-source Discord bot written in Python.\n"
-                                                f"[My home is here]({url}) if you'd like to check it out!")
+                                    description=f"Hi! I'm open-source Discord bot AIYA, written in Python.\n"
+                                                f"[My home is here]({url}) if you'd like to check it out, "
+                                                f"and the [wiki]({url3}) has some basic info on usage!\n\n"
+                                                f"Feel free to report bugs or leave feedback!")
         embed_about.colour = settings.global_var.embed_color
         embed_about.set_thumbnail(url=url2)
         embed_about.set_footer(text='Have a lovely day!', icon_url=url2)
@@ -128,7 +146,7 @@ class TipsCog(commands.Cog):
     async def on_ready(self):
         self.bot.add_view(TipsView())
 
-    @commands.slash_command(name="tips", description="Some quick tips for generating images!")
+    @commands.slash_command(name="tips", description="Lots of useful information!")
     async def tips(self, ctx):
         first_embed = discord.Embed(title='Select a button!')
         first_embed.colour = settings.global_var.embed_color

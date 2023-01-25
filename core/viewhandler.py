@@ -72,7 +72,7 @@ class DrawModal(Modal):
         # expose each available (supported) option, even if output didn't use them
         ex_params = f'data_model:{display_name}'
         for index, value in enumerate(tuple_names[index_start:], index_start):
-            if 9 <= index <= 12 or index == 15 or index == 17:
+            if index == 9 or 11 <= index <= 12 or index == 15 or index == 17:
                 continue
             ex_params += f'\n{value}:{input_tuple[index]}'
 
@@ -110,21 +110,25 @@ class DrawModal(Modal):
         for line in self.children[3].value.split('\n'):
             if 'data_model:' in line:
                 new_model = line.split(':', 1)[1]
-                for model in settings.global_var.model_info.items():
-                    if model[0] == new_model:
-                        pen[3] = model[1][0]
-                        model_found = True
-                        # grab the new activator token
-                        new_token = f'{model[1][3]} '.lstrip(' ')
-                        break
-                if not model_found:
-                    invalid_input = True
-                    embed_err.add_field(name=f"`{line.split(':', 1)[1]}` is not found. Try one of these models!",
-                                        value=', '.join(['`%s`' % x for x in settings.global_var.model_info]),
-                                        inline=False)
+                # if keeping the "Default" model, don't attempt a model swap
+                if new_model == 'Default':
+                    pass
+                else:
+                    for model in settings.global_var.model_info.items():
+                        if model[0] == new_model:
+                            pen[3] = model[1][0]
+                            model_found = True
+                            # grab the new activator token
+                            new_token = f'{model[1][3]} '.lstrip(' ')
+                            break
+                    if not model_found:
+                        invalid_input = True
+                        embed_err.add_field(name=f"`{line.split(':', 1)[1]}` is not found. Try one of these models!",
+                                            value=', '.join(['`%s`' % x for x in settings.global_var.model_info]),
+                                            inline=False)
 
             if 'steps:' in line:
-                max_steps = settings.read('% s' % pen[0].guild_id)['max_steps']
+                max_steps = settings.read('% s' % pen[0].channel.id)['max_steps']
                 if 0 < int(line.split(':', 1)[1]) <= max_steps:
                     pen[4] = line.split(':', 1)[1]
                 else:
@@ -161,6 +165,14 @@ class DrawModal(Modal):
                     invalid_input = True
                     embed_err.add_field(name=f"`{line.split(':', 1)[1]}` is unrecognized. I know of these samplers!",
                                         value=', '.join(['`%s`' % x for x in settings.global_var.sampler_names]),
+                                        inline=False)
+            if 'strength:' in line:
+                try:
+                    pen[10] = float(line.split(':', 1)[1])
+                except(Exception,):
+                    invalid_input = True
+                    embed_err.add_field(name=f"`{line.split(':', 1)[1]}` is not valid for strength!.",
+                                        value='Make sure you enter a number (preferably between 0.0 and 1.0).',
                                         inline=False)
             if 'style:' in line:
                 if line.split(':', 1)[1] in settings.global_var.style_names.keys():
@@ -201,6 +213,9 @@ class DrawModal(Modal):
             # update the prompt again if a valid model change is requested
             if model_found:
                 pen[1] = new_token + pen[17]
+            # if a hypernetwork is added, append it to prompt
+            if pen[18] != 'None':
+                pen[1] += f' <hypernet:{pen[18]}:1>'
 
             # the updated tuple to send to queue
             prompt_tuple = tuple(pen)
@@ -214,20 +229,21 @@ class DrawModal(Modal):
                 prompt_output += f'\nNew model: ``{new_model}``'
             index_start = 4
             for index, value in enumerate(tuple_names[index_start:], index_start):
-                if 17 <= index <= 18:
+                if index == 17:
                     continue
                 if str(pen[index]) != str(self.input_tuple[index]):
                     prompt_output += f'\nNew {value}: ``{pen[index]}``'
 
             # check queue again, but now we know user is not in queue
+            settings.global_var.send_model = False
             if queuehandler.GlobalQueue.dream_thread.is_alive():
-                if self.input_tuple[3] != '':
+                if prompt_tuple[3] != '' and self.input_tuple[3] != prompt_tuple[3]:
                     settings.global_var.send_model = True
                 queuehandler.GlobalQueue.queue.append(queuehandler.DrawObject(stablecog.StableCog(self), *prompt_tuple, DrawView(prompt_tuple)))
                 await interaction.response.send_message(
                     f'<@{interaction.user.id}>, {settings.messages()}\nQueue: ``{len(queuehandler.GlobalQueue.queue)}``{prompt_output}')
             else:
-                if self.input_tuple[3] != '':
+                if prompt_tuple[3] != '' and self.input_tuple[3] != prompt_tuple[3]:
                     settings.global_var.send_model = True
                 await queuehandler.process_dream(draw_dream, queuehandler.DrawObject(stablecog.StableCog(self), *prompt_tuple, DrawView(prompt_tuple)))
                 await interaction.response.send_message(
@@ -389,9 +405,9 @@ class DrawView(View):
                 extra_params += f'\nCLIP skip: ``{rev[16]}``'
             if rev[18] != 'None':
                 copy_command += f' hypernet:{rev[18]}'
-                extra_params += f'\nHypernetwork model(hash): ``{rev[18]}``'
+                extra_params += f'\nHypernetwork model: ``{rev[18]}``'
             embed.add_field(name=f'Other parameters', value=extra_params, inline=False)
-            embed.add_field(name=f'Command for copying', value=f'``{copy_command}``', inline=False)
+            embed.add_field(name=f'Command for copying', value=f'{copy_command}', inline=False)
 
             await interaction.response.send_message(embed=embed, ephemeral=True)
         except Exception as e:
