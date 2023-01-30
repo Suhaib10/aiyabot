@@ -125,6 +125,13 @@ class StableCog(commands.Cog, name='Stable Diffusion', description='Create image
         autocomplete=discord.utils.basic_autocomplete(settingscog.SettingsCog.hyper_autocomplete),
     )
     @option(
+        'lora',
+        str,
+        description='Apply a LoRA model to influence the output.',
+        required=False,
+        autocomplete=discord.utils.basic_autocomplete(settingscog.SettingsCog.lora_autocomplete),
+    )
+    @option(
         'strength',
         str,
         description='The amount in which init_image will be altered (0.0 to 1.0).'
@@ -160,12 +167,12 @@ class StableCog(commands.Cog, name='Stable Diffusion', description='Create image
                             highres_fix: Optional[str] = None,
                             clip_skip: Optional[int] = None,
                             hypernet: Optional[str] = None,
+                            lora: Optional[str] = None,
                             strength: Optional[str] = None,
                             init_image: Optional[discord.Attachment] = None,
                             init_url: Optional[str],
                             count: Optional[int] = None):
 
-        settings.global_var.send_model = False
         # update defaults with any new defaults from settingscog
         channel = '% s' % ctx.channel.id
         settings.check(channel)
@@ -191,6 +198,8 @@ class StableCog(commands.Cog, name='Stable Diffusion', description='Create image
             clip_skip = settings.read(channel)['clip_skip']
         if hypernet is None:
             hypernet = settings.read(channel)['hypernet']
+        if lora is None:
+            lora = settings.read(channel)['lora']
         if strength is None:
             strength = settings.read(channel)['strength']
         if count is None:
@@ -200,10 +209,6 @@ class StableCog(commands.Cog, name='Stable Diffusion', description='Create image
         model_name = 'Default'
         if data_model is None:
             data_model = settings.read(channel)['data_model']
-            if data_model != '':
-                settings.global_var.send_model = True
-        else:
-            settings.global_var.send_model = True
 
         simple_prompt = prompt
         # take selected data_model and get model_name, then update data_model with the full name
@@ -216,11 +221,13 @@ class StableCog(commands.Cog, name='Stable Diffusion', description='Create image
                     prompt = model[1][3] + " " + prompt
                 break
 
-        # if a hyper network is used, append it to the prompt
+        # if a hypernet or lora is used, append it to the prompt
         if hypernet != 'None':
             prompt += f' <hypernet:{hypernet}:1>'
+        if lora != 'None':
+            prompt += f' <lora:{lora}:1>'
 
-        if not settings.global_var.send_model:
+        if data_model != '':
             print(f'Request -- {ctx.author.name}#{ctx.author.discriminator} -- Prompt: {prompt}')
         else:
             print(f'Request -- {ctx.author.name}#{ctx.author.discriminator} -- Prompt: {prompt} -- Using model: {data_model}')
@@ -269,6 +276,8 @@ class StableCog(commands.Cog, name='Stable Diffusion', description='Create image
             reply_adds += f'\nStyle: ``{style}``'
         if hypernet != 'None':
             reply_adds += f'\nHypernet: ``{hypernet}``'
+        if lora != 'None':
+            reply_adds += f'\nLoRA: ``{lora}``'
         if facefix != 'None':
             reply_adds += f'\nFace restoration: ``{facefix}``'
         if clip_skip != 1:
@@ -276,8 +285,8 @@ class StableCog(commands.Cog, name='Stable Diffusion', description='Create image
 
         # set up tuple of parameters to pass into the Discord view
         input_tuple = (
-            ctx, prompt, negative_prompt, data_model, steps, width, height, guidance_scale, sampler, seed, strength,
-            init_image, count, style, facefix, highres_fix, clip_skip, simple_prompt, hypernet)
+            ctx, simple_prompt, prompt, negative_prompt, data_model, steps, width, height, guidance_scale, sampler, seed, strength,
+            init_image, count, style, facefix, highres_fix, clip_skip, hypernet, lora)
         view = viewhandler.DrawView(input_tuple)
         # setup the queue
         if queuehandler.GlobalQueue.dream_thread.is_alive():
@@ -390,7 +399,7 @@ class StableCog(commands.Cog, name='Stable Diffusion', description='Create image
                 s.post(settings.global_var.url + '/login')
 
             # only send model payload if one is defined
-            if settings.global_var.send_model:
+            if queue_object.data_model != '':
                 s.post(url=f'{settings.global_var.url}/sdapi/v1/options', json=model_payload)
             if queue_object.init_image is not None:
                 response = s.post(url=f'{settings.global_var.url}/sdapi/v1/img2img', json=payload)
